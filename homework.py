@@ -3,7 +3,9 @@ import time
 import requests
 import telegram
 import logging
+from telegram.ext import Updater, CommandHandler
 from dotenv import load_dotenv
+from weather import weather, weather_send
 
 load_dotenv()
 
@@ -12,6 +14,7 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 HEADERS = {'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'}
 bot = telegram.Bot(TELEGRAM_TOKEN)
+updater = Updater(TELEGRAM_TOKEN, use_context=True)
 
 url = 'https://praktikum.yandex.ru/api/user_api/homework_statuses/'
 
@@ -65,10 +68,16 @@ def send_message(message):
 
 
 def main():
+    updater.dispatcher.add_handler(
+        CommandHandler('weather', weather))
     current_timestamp = int(time.time())  # Начальное значение timestamp
+
+    updater.dispatcher.add_handler(
+        CommandHandler('weathernow', weather_send))
 
     while True:
         try:
+            updater.start_polling(poll_interval=15.0)
             homework = get_homeworks(current_timestamp)
             new_homework = homework['homeworks']
             if new_homework:
