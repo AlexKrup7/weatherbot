@@ -4,15 +4,21 @@ import datetime as dt
 import logging
 import telegram
 import sqlite3
+import re
+from telegram.ext import MessageHandler, Updater
+
 from dotenv import load_dotenv
 from wind_direct import wind
 
 load_dotenv()
 TORR = 133.3223684
+CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOKEN = os.getenv('WEATHER_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 NN = '56.20, 44.00'
-WEATHER_URL_4_DAYS = 'https://api.openweathermap.org/data/2.5/forecast?q={}&units={}&appid={TOKEN}'  # &lang=ru
+WEATHER_URL_4_DAYS = 'https://api.openweathermap.org/data/2.5/forecast?q=' \
+                     '{}&units={}&appid={}'
+
 WEATHER_URL = f'https://wttr.in/{NN}'
 UNITS = {'format': 2,
          'M': '',
@@ -32,47 +38,19 @@ def what_weather(city):
 def weather_send(update, context):
     chat = update.effective_chat
     context.bot.send_message(chat_id=chat.id,
-                             text=what_weather('NN'))
+                             text=what_weather(NN))
 
 
 def weather(update, context):
-    try:
-        if len(update.message.text.split()) < 2:
-            weather.NUMBER = 30
-            weather.CITY = 'Нижний Новгород'
-        if len(update.message.text.split()) < 3:
-            try:
-                weather.NUMBER = int(update.message.text.split()[1])
-                weather.CITY = 'Nizhniy Novgorod'
-            except Exception as e:
-                try:
-                    weather.CITY = update.message.text.split()[1]
-                    weather.NUMBER = 30
-                    logging.error(e)
-                except Exception as e:
-                    weather.CITY = 'Nizhniy Novgorod'
-                    weather.NUMBER = 30
-                    logging.error(e)
-        if len(update.message.text.split()) == 3:
-            try:
-                weather.NUMBER = int(update.message.text.split()[1])
-            except Exception as e:
-                weather.CITY = update.message.text.split()[1]
-                logging.error(e)
-            try:
-                weather.NUMBER = int(update.message.text.split()[2])
-            except Exception as e:
-                weather.CITY = update.message.text.split()[2]
-                logging.error(e)
-    except AttributeError as e:
-        logging.error(f'значение часов не указано {e}')
-    except IndexError as e:
-        logging.error(f'значение часов не указано {e}')
-    n = weather.NUMBER
+    keyword = ' '.join(context.args)
+    hours = ''.join(re.findall(r'\d+', keyword))
+    word = ' '.join(keyword.replace(hours, '').split())
+    if hours == '':
+        hours = 21
     conn = sqlite3.connect("weather.sqlite", check_same_thread=False)
     cursor = conn.cursor()
     chat = update.effective_chat
-    city_name = weather.CITY
+    city_name = word
     units = 'metric'
     r4 = requests.get(WEATHER_URL_4_DAYS.format(
         city_name, units, TOKEN)).json()
@@ -80,7 +58,7 @@ def weather(update, context):
             city_name, units, TOKEN)).json()['cod'] == '404':
         r4 = requests.get(WEATHER_URL_4_DAYS.format(
             'Moscow', units, TOKEN)).json()
-    counts1 = n // 3
+    counts1 = int(hours) // 3
     text1 = f"Погода в н.п. - {r4['city']['name']} на {counts1 * 3} часов:"
     bot.send_message(chat_id=chat.id, text=text1)
     r4 = r4['list']

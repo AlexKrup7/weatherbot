@@ -3,12 +3,13 @@ import time
 import requests
 import telegram
 import logging
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import CommandHandler, MessageHandler, Updater, Filters, Job, JobQueue
 from dotenv import load_dotenv
-from weather import weather, weather_send
+from weather_bot import weather, weather_send
 
 load_dotenv()
 
+TOKEN = os.getenv('WEATHER_TOKEN')
 PRAKTIKUM_TOKEN = os.getenv('PRAKTIKUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
@@ -89,6 +90,19 @@ def main():
         except Exception as e:
             logging.error(f'Бот упал с ошибкой: {e}')
             time.sleep(5 * 60)
+
+
+#def rain_message(context):
+   # url = 'api.openweathermap.org/data/2.5/weather?lat=' \
+   #       '{56.20}&lon={44.00}&appid={TOKEN}'
+  #  resp = requests.get(url, verify=False)
+    #data = {}
+    #if resp.status_code == 200:
+      #  for main in resp.json()['weather']:
+          #  if main == 'Rain':
+              #  return send_message('СКОРО ДОЖДЬ')
+
+
 
 
 if __name__ == '__main__':
